@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Logs - Jailor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex">
+
+    <aside class="w-64 bg-slate-900 h-screen fixed border-r border-slate-800 flex flex-col z-20">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-alert" class="text-white"></i></div>
+            <div>
+                <h1 class="font-bold text-sm tracking-tight text-white">COMMAND POST</h1>
+                <p class="text-[10px] text-slate-500 font-mono">ROLE: JAILOR</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="{{ url_for('jailor_dashboard') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="layout-grid" size="18"></i> <span class="font-medium text-sm">Overview</span>
+            </a>
+            <a href="{{ url_for('jailor_dashboard') }}?tab=admit" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="user-plus" size="18"></i> <span class="font-medium text-sm">Admit Inmate</span>
+            </a>
+            <a href="{{ url_for('jailor_dashboard') }}?tab=work" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="hammer" size="18"></i> <span class="font-medium text-sm">Work Allocation</span>
+            </a>
+            <a href="{{ url_for('jailor_dashboard') }}?tab=diet" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="utensils" size="18"></i> <span class="font-medium text-sm">Dietary Scale</span>
+            </a>
+            <a href="{{ url_for('jailor_dashboard') }}?tab=map" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="map" size="18"></i> <span class="font-medium text-sm">Cell Map</span>
+            </a>
+            <a href="{{ url_for('jailor_attendance') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-blue-600 text-white shadow-lg">
+                <i data-lucide="clipboard-check" size="18"></i> <span class="font-medium text-sm">Attendance Log</span>
+            </a>
+            <a href="{{ url_for('jailor_history') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="archive" size="18"></i> <span class="font-medium text-sm">Historical Records</span>
+            </a>
+            <a href="{{ url_for('jailor_dashboard') }}?tab=alerts" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="siren" size="18"></i> <span class="font-medium text-sm">Security Alerts</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <a href="/logout" class="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg">
+                <i data-lucide="log-out" size="18"></i> <span class="text-sm font-bold">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="ml-64 flex-1 p-8">
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-blue-600 rounded-xl"><i data-lucide="clipboard-check" class="text-white"></i></div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Daily Attendance Log</h2>
+                    <p class="text-slate-500 text-sm">Reviewing daily roll calls for your facility.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 shadow-xl">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2">
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Select Date</label>
+                    <input type="date" name="date" value="{{ search_date }}" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="search" size="18"></i> View Logs
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+            <table class="w-full text-left">
+                <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                    <tr>
+                        <th class="p-5">Roll No</th>
+                        <th class="p-5">Inmate Name</th>
+                        <th class="p-5">Cell Location</th>
+                        <th class="p-5 text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for log in logs %}
+                    <tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="p-5 text-slate-400 font-mono text-sm">{{ log.inmate.nominal_roll }}</td>
+                        <td class="p-5 font-bold text-white">{{ log.inmate.name }}</td>
+                        <td class="p-5 text-sm text-slate-300">{{ log.inmate.cell_assignment }}</td>
+                        <td class="p-5 text-right">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold 
+                            {% if log.status == 'Present' %} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 
+                            {% else %} bg-red-500/10 text-red-400 border border-red-500/20 {% endif %}">
+                                {{ log.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="p-8 text-center text-slate-500 italic">No attendance marked for this date yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+    </div>
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

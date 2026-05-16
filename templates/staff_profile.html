@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Profile | {{ staff.fullname }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 p-8 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <a href="{{ url_for('superintendent_dashboard') }}" class="absolute top-6 left-6 text-slate-500 hover:text-white transition-colors">
+            <i data-lucide="arrow-left"></i>
+        </a>
+        
+        <div class="flex flex-col items-center">
+            <img src="{{ url_for('static', filename='staff_photos/' + staff.photo) }}" class="w-32 h-32 rounded-full object-cover border-4 border-purple-500 mb-6 shadow-lg shadow-purple-500/20">
+            <h1 class="text-2xl font-bold text-white mb-1">{{ staff.fullname }}</h1>
+            <p class="text-purple-400 font-bold tracking-widest text-xs uppercase mb-6">{{ staff.role }}</p>
+            
+            <div class="w-full space-y-4">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                    <i data-lucide="building" class="text-slate-500"></i>
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase font-bold">Assigned Facility</p>
+                        <p class="text-white font-medium">{{ staff.jail.name if staff.jail else 'Headquarters' }}</p>
+                    </div>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center gap-4">
+                    <i data-lucide="user" class="text-slate-500"></i>
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase font-bold">System Username</p>
+                        <p class="text-white font-medium">{{ staff.username }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | {{ user.username }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex justify-center items-center p-6">
+
+    <div class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+        
+        <!-- Header -->
+        <div class="bg-slate-950 p-6 border-b border-slate-800 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <a href="{{ back_link }}" class="p-2 hover:bg-slate-800 rounded-full transition-colors group">
+                    <i data-lucide="arrow-left" class="text-slate-400 group-hover:text-white"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-white">Edit My Profile</h1>
+                    <p class="text-xs text-slate-500 font-mono">Role: {{ user.role }}</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('my_profile') }}" enctype="multipart/form-data">
+            <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Left Column: Photo -->
+                <div class="col-span-1 flex flex-col items-center text-center">
+                    <div class="w-40 h-40 rounded-full bg-slate-800 border-2 border-slate-700 overflow-hidden mb-4 shadow-lg">
+                        <img src="{{ url_for('static', filename='staff_photos/' + user.photo) }}" 
+                             onerror="this.src='https://ui-avatars.com/api/?name={{ user.fullname }}&background=random&size=160'" 
+                             class="w-full h-full object-cover">
+                    </div>
+                    <label for="photo-upload" class="w-full bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition-colors">
+                        Change Photo
+                    </label>
+                    <input id="photo-upload" name="photo" type="file" class="hidden">
+                    <p class="text-xs text-slate-500 mt-2">Upload a new profile picture.</p>
+                </div>
+
+                <!-- Right Column: Details -->
+                <div class="col-span-2 space-y-6">
+                    
+                    <div>
+                        <label for="fullname" class="text-[10px] uppercase font-bold text-slate-500">Full Name</label>
+                        <input type="text" id="fullname" name="fullname" value="{{ user.fullname }}" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label for="username" class="text-[10px] uppercase font-bold text-slate-500">Username (Cannot be changed)</label>
+                        <input type="text" id="username" name="username" value="{{ user.username }}" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-400 outline-none" readonly disabled>
+                    </div>
+
+                    <div>
+                        <label for="password" class="text-[10px] uppercase font-bold text-slate-500">New Password (Leave blank to keep current)</label>
+                        <input type="password" id="password" name="password" placeholder="••••••••" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white focus:border-blue-500 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer with Actions -->
+            <div class="bg-slate-950 p-4 border-t border-slate-800 flex justify-end items-center gap-3">
+                <a href="{{ back_link }}" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-green-500/20 transition-all">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

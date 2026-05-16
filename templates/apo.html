@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Center | APO Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .blink { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        .tab-content { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex">
+
+    <aside class="w-64 bg-slate-900 h-screen fixed border-r border-slate-800 flex flex-col z-10">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="bg-red-600 p-2 rounded-lg"><i data-lucide="cctv" class="text-white"></i></div>
+            <div>
+                <h1 class="font-bold text-sm tracking-tight text-white">SECURITY CENTER</h1>
+                <p class="text-[10px] text-slate-500 font-mono font-bold uppercase truncate w-40">{{ current_jail }}</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="switchTab('surveillance')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-600 text-white shadow-lg">
+                <i data-lucide="eye" size="18"></i> <span class="font-medium text-sm">Live Surveillance</span>
+            </button>
+            <button onclick="switchTab('attendance')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800">
+                <i data-lucide="clipboard-check" size="18"></i> <span class="font-medium text-sm">Attendance</span>
+            </button>
+            <button onclick="switchTab('movement')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800">
+                <i data-lucide="map-pin" size="18"></i> <span class="font-medium text-sm">Movement Log</span>
+            </button>
+            <button onclick="switchTab('alerts')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800">
+                <i data-lucide="history" size="18"></i> <span class="font-medium text-sm">Alert History</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <a href="/logout" class="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg">
+                <i data-lucide="log-out" size="18"></i> <span class="text-sm font-bold">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="ml-64 flex-1 p-8 relative">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-xl border flex items-center gap-3 {% if category=='success' %} bg-emerald-500/10 border-emerald-500/20 text-emerald-400 {% else %} bg-yellow-500/10 border-yellow-500/20 text-yellow-400 {% endif %}">
+                    <i data-lucide="bell" class="w-5 h-5"></i> <span class="font-bold text-sm">{{ message }}</span>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section id="surveillance-view" class="tab-content h-[calc(100vh-8rem)] flex gap-6">
+            
+            <div class="flex-1 flex flex-col">
+                <div class="bg-black border border-slate-800 rounded-2xl overflow-hidden relative group shadow-2xl h-full">
+                    <div class="absolute top-4 left-4 z-10 flex gap-2">
+                        <span class="bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded flex items-center gap-1 shadow-lg animate-pulse">
+                            <span class="w-2 h-2 bg-white rounded-full blink"></span> LIVE AI
+                        </span>
+                        <span class="bg-black/60 backdrop-blur text-slate-300 text-[10px] font-mono px-3 py-1 rounded border border-white/10 uppercase">
+                            CAM 1: {{ current_jail }} MAIN
+                        </span>
+                    </div>
+                    
+                    <img src="{{ url_for('video_feed', cam_id='0') }}" class="w-full h-full object-cover">
+                    
+                    <div id="alert-overlay" class="absolute inset-0 bg-red-600/20 z-20 hidden flex items-center justify-center pointer-events-none">
+                        <div class="bg-red-600 text-white px-6 py-3 rounded-2xl font-bold text-2xl shadow-2xl animate-bounce flex items-center gap-3 border-2 border-white/50">
+                            <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                            <span id="alert-overlay-text">THREAT DETECTED</span>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-4 left-4 p-3 bg-black/70 backdrop-blur rounded-xl border border-white/10 hidden group-hover:block transition-all">
+                        <div class="text-xs text-slate-300 font-mono">
+                            MODEL: <span class="text-green-400">YOLOv8 Nano</span><br>
+                            DETECTION: <span class="text-blue-400">PERSON / CROWD</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-80 flex flex-col gap-6">
+                
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 text-red-500 flex items-center gap-2">
+                        <i data-lucide="siren" class="w-5 h-5"></i> Emergency Alerts
+                    </h3>
+                    <ul id="live-alert-list" class="space-y-3">
+                        {% for alert in alerts %}
+                        <li class="bg-gray-700 p-3 rounded flex justify-between items-center border-l-4 border-red-500 animate-pulse">
+                            <span class="font-bold text-sm">{{ alert.type }} <br><span class="text-xs font-normal text-gray-400">{{ alert.location }}</span></span>
+                            <span class="text-xs text-gray-400 font-mono">{{ alert.timestamp.strftime('%I:%M %p') }}</span>
+                        </li>
+                        {% else %}
+                        <li class="text-gray-500 text-sm italic">No active threats detected.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <h3 class="text-white font-bold mb-4 text-xs uppercase flex items-center gap-2">
+                        <i data-lucide="radio" class="w-4 h-4"></i> Manual Report
+                    </h3>
+                    <form action="/api/report-incident" method="POST" class="space-y-3">
+                        <select name="type" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-300 outline-none">
+                            <option>Violence</option>
+                            <option>Medical Emergency</option>
+                            <option>Fire Hazard</option>
+                            <option>Suspicious Activity</option>
+                        </select>
+                        <input type="text" name="location" placeholder="Specific Location (e.g. Block A)" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-300 outline-none" required>
+                        <button class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded text-sm transition-colors">
+                            Broadcast Alert
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="attendance-view" class="tab-content hidden">
+            <header class="mb-8"><h2 class="text-3xl font-bold text-white mb-2">Daily Attendance</h2></header>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-slate-400 text-xs uppercase font-bold">
+                        <tr><th class="p-4">Inmate</th><th class="p-4">Cell Block</th><th class="p-4 text-right">Mark Status</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for inmate in inmates %}
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="p-4 font-bold text-white">
+                                {{ inmate.name }} 
+                                <div class="text-xs text-blue-400 font-mono">{{ inmate.nominal_roll }}</div>
+                            </td>
+                            <td class="p-4 text-slate-300 font-mono">{{ inmate.cell_assignment }}</td>
+                            <td class="p-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="markAttendance(this, '{{ inmate.id }}', 'Present')" 
+                                            class="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 rounded text-xs hover:bg-emerald-500/20 font-bold transition-colors">
+                                        Present
+                                    </button>
+                                    <button onclick="markAttendance(this, '{{ inmate.id }}', 'Medical')" 
+                                            class="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded text-xs hover:bg-red-500/20 font-bold transition-colors">
+                                        Medical
+                                    </button>
+                                    <button onclick="markAttendance(this, '{{ inmate.id }}', 'Court')" 
+                                            class="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded text-xs hover:bg-amber-500/20 font-bold transition-colors">
+                                        Court
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" class="p-8 text-center text-slate-500">No active inmates found in this facility.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="movement-view" class="tab-content hidden">
+            <header class="mb-8"><h2 class="text-3xl font-bold text-white mb-2">Movement Tracker</h2></header>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                    <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i data-lucide="log-out" class="w-4 h-4 text-blue-400"></i> Log Exit Movement</h3>
+                    <form action="/api/log-movement" method="POST" class="space-y-4">
+                        <div>
+                            <label class="text-xs text-slate-500 font-bold block mb-1">Select Inmate</label>
+                            <select name="inmate_id" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-300 outline-none focus:border-blue-500 transition-colors">
+                                {% for inmate in inmates %}
+                                <option value="{{ inmate.id }}">{{ inmate.name }} ({{ inmate.nominal_roll }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500 font-bold block mb-1">Destination</label>
+                            <input type="text" name="destination" placeholder="e.g. Court / Hospital" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white outline-none focus:border-blue-500 transition-colors" required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500 font-bold block mb-1">Purpose</label>
+                            <input type="text" name="purpose" placeholder="e.g. Hearing / Emergency" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-white outline-none focus:border-blue-500 transition-colors" required>
+                        </div>
+                        <button class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg transition-transform hover:scale-[1.02]">Log Exit</button>
+                    </form>
+                </div>
+
+                <div class="col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                    <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i data-lucide="history" class="w-4 h-4 text-slate-400"></i> Recent Movements</h3>
+                    <div class="space-y-3">
+                        {% for log in movements %}
+                        <div class="flex justify-between items-center p-3 rounded-lg border border-slate-800 bg-slate-950 hover:border-slate-700 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-500/10 p-2 rounded-lg text-blue-400">
+                                    <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <span class="text-xs text-slate-500 font-mono block">{{ log.timestamp.strftime('%I:%M %p') }}</span>
+                                    <h4 class="font-bold text-white text-sm">{{ log.inmate.name }}</h4>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-blue-400 font-bold">{{ log.destination }}</div>
+                                <div class="text-xs text-slate-500 uppercase">{{ log.purpose }}</div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="flex flex-col items-center justify-center h-40 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                            <i data-lucide="clock" class="w-8 h-8 mb-2 opacity-20"></i>
+                            <p>No movements recorded today.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="alerts-view" class="tab-content hidden">
+            <header class="mb-8"><h2 class="text-3xl font-bold text-white mb-2">Security Alert History</h2></header>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-slate-400 text-xs uppercase font-bold">
+                        <tr>
+                            <th class="p-4">Time</th>
+                            <th class="p-4">Alert Type</th>
+                            <th class="p-4">Location</th>
+                            <th class="p-4 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for alert in alerts %}
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="p-4 text-slate-400 font-mono">{{ alert.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                            <td class="p-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold 
+                                {% if 'Weapon' in alert.type %} bg-red-500/10 text-red-400 border border-red-500/20
+                                {% elif 'Emergency' in alert.type %} bg-red-500/10 text-red-400 border border-red-500/20
+                                {% else %} bg-orange-500/10 text-orange-400 border border-orange-500/20 {% endif %}">
+                                    {{ alert.type }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-slate-300">{{ alert.location }}</td>
+                            <td class="p-4 text-right">
+                                <span class="text-xs font-bold text-green-400">Logged</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="p-8 text-center text-slate-500">No security alerts recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`${tabId}-view`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-red-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-slate-400', 'hover:bg-slate-800');
+            });
+            event.currentTarget.classList.remove('text-slate-400', 'hover:bg-slate-800');
+            event.currentTarget.classList.add('bg-red-600', 'text-white', 'shadow-lg');
+        }
+
+        // Auto-refresh alerts every 2 seconds
+        let lastAlertId = null;
+        function fetchLiveAlerts() {
+            fetch('/api/get-alerts')
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('live-alert-list');
+                    list.innerHTML = ''; // Clear current list
+                    
+                    if (data.length > 0) {
+                        const currentLatestId = data[0].id;
+                        if (lastAlertId !== null && currentLatestId !== lastAlertId) {
+                            // Play sound on new alert
+                            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                            audio.play().catch(e => console.log("Audio play blocked by browser:", e));
+                            
+                            // Show alert overlay on camera feed
+                            const overlay = document.getElementById('alert-overlay');
+                            if(overlay) {
+                                document.getElementById('alert-overlay-text').innerText = data[0].type;
+                                overlay.classList.remove('hidden');
+                                setTimeout(() => overlay.classList.add('hidden'), 3000);
+                            }
+                        }
+                        lastAlertId = currentLatestId;
+
+                        data.forEach(alert => {
+                            const item = `<li class="bg-gray-700 p-3 rounded flex justify-between items-center border-l-4 border-red-500 animate-pulse">
+                                <span class="font-bold text-sm">${alert.type} <br><span class="text-xs font-normal text-gray-400">${alert.location}</span></span>
+                                <span class="text-xs text-gray-400 font-mono">${alert.time}</span>
+                            </li>`;
+                            list.innerHTML += item;
+                        });
+                    } else {
+                        list.innerHTML = '<li class="text-gray-500 text-sm italic">No active threats detected.</li>';
+                    }
+                });
+        }
+        setInterval(fetchLiveAlerts, 2000);
+
+        function markAttendance(btn, inmateId, status) {
+            // 1. Visual Feedback: Fade the button to show it was pressed
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            // 2. Send Data without reloading the page
+            const formData = new FormData();
+            formData.append('inmate_id', inmateId);
+            formData.append('status', status);
+
+            fetch('/api/mark-attendance', {
+                method: 'POST',
+                body: formData
+            }).catch(err => console.error('Error marking attendance:', err));
+        }
+    </script>
+</body>
+</html>

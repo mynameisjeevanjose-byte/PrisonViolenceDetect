@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APO Dashboard | VJC Smart Prison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 h-screen fixed border-r border-slate-800 flex flex-col z-20">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="bg-cyan-600 p-2 rounded-lg"><i data-lucide="user-check" class="text-white"></i></div>
+            <div>
+                <h1 class="font-bold text-sm tracking-tight text-white">FIELD UNIT</h1>
+                <p class="text-[10px] text-slate-500 font-mono">ROLE: APO</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="switchTab('overview')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-cyan-600 text-white shadow-lg">
+                <i data-lucide="layout-dashboard" size="18"></i> <span class="font-medium text-sm">Overview</span>
+            </button>
+            <button onclick="switchTab('attendance')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="clipboard-list" size="18"></i> <span class="font-medium text-sm">Roll Call</span>
+            </button>
+            <button onclick="switchTab('movements')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="footprints" size="18"></i> <span class="font-medium text-sm">Log Movement</span>
+            </button>
+            <button onclick="switchTab('alerts')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="siren" size="18"></i> <span class="font-medium text-sm">Incidents</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <a href="/logout" class="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg">
+                <i data-lucide="log-out" size="18"></i> <span class="text-sm font-bold">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="ml-64 flex-1 p-8 relative">
+        
+        <div class="flex justify-between items-center mb-8 bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl">
+            <div>
+                <h2 class="text-xl font-bold text-white">Officer Dashboard</h2>
+                <p class="text-slate-500 text-sm">Facility: <span class="text-cyan-400 font-mono font-bold">{{ current_jail }}</span></p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs font-bold text-slate-400">Active Inmates</p>
+                <p class="text-xl font-bold text-white">{{ inmates|length }}</p>
+            </div>
+        </div>
+
+        <!-- OVERVIEW TAB -->
+        <section id="overview-view" class="tab-content animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <p class="text-slate-500 text-xs font-bold uppercase">Total Headcount</p>
+                    <h3 class="text-3xl font-bold text-white">{{ inmates|length }}</h3>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <p class="text-slate-500 text-xs font-bold uppercase">Recent Movements</p>
+                    <h3 class="text-3xl font-bold text-white">{{ movements|length }}</h3>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <p class="text-slate-500 text-xs font-bold uppercase">Alerts Today</p>
+                    <h3 class="text-3xl font-bold text-red-500">{{ alerts|length }}</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- ATTENDANCE TAB (ROLL CALL) -->
+        <section id="attendance-view" class="tab-content hidden animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 bg-cyan-600 rounded-xl"><i data-lucide="clipboard-list" class="text-white"></i></div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Daily Roll Call</h2>
+                    <p class="text-slate-500 text-sm">Mark attendance for all active inmates.</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-5">Inmate</th>
+                            <th class="p-5">Cell</th>
+                            <th class="p-5 text-center">Mark Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for inmate in inmates %}
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="p-5">
+                                <p class="font-bold text-white">{{ inmate.name }}</p>
+                                <p class="text-xs text-cyan-400 font-mono">{{ inmate.nominal_roll }}</p>
+                            </td>
+                            <td class="p-5 text-sm text-slate-400">{{ inmate.cell_assignment }}</td>
+                            <td class="p-5">
+                                <div class="flex justify-center gap-2">
+                                    <button onclick="markAttendance(this, '{{ inmate.id }}', 'Present')" 
+                                            class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-500/10">
+                                        Present
+                                    </button>
+                                    <button onclick="markAttendance(this, '{{ inmate.id }}', 'Medical')" 
+                                            class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-red-500/10">
+                                        Medical
+                                    </button>
+                                    <button onclick="markAttendance(this, '{{ inmate.id }}', 'Court')" 
+                                            class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-amber-500/10">
+                                        Court
+                                    </button>
+                                    <button onclick="markAttendance(this, '{{ inmate.id }}', 'Work Duty')" 
+                                            class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/10">
+                                        On Duty
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- MOVEMENTS TAB -->
+        <section id="movements-view" class="tab-content hidden animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 bg-purple-600 rounded-xl"><i data-lucide="footprints" class="text-white"></i></div>
+                <h2 class="text-2xl font-bold text-white">Log Inmate Movement</h2>
+            </div>
+            
+            <form action="/api/log-movement" method="POST" class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-xl mb-8">
+                <div class="mb-4">
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Select Inmate</label>
+                    <select name="inmate_id" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white outline-none focus:border-purple-500">
+                        {% for inmate in inmates %}
+                        <option value="{{ inmate.id }}">{{ inmate.name }} ({{ inmate.nominal_roll }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Destination</label>
+                    <input type="text" name="destination" placeholder="e.g. Court, Hospital, Workshop" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white outline-none focus:border-purple-500">
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Purpose</label>
+                    <input type="text" name="purpose" placeholder="e.g. Hearing, Checkup" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white outline-none focus:border-purple-500">
+                </div>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-bold">Log Movement</button>
+            </form>
+
+            <h3 class="text-lg font-bold text-white mb-4">Recent Movements</h3>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-950 text-slate-400 font-bold uppercase text-xs">
+                        <tr><th class="p-4">Time</th><th class="p-4">Inmate</th><th class="p-4">Destination</th><th class="p-4">Purpose</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for m in movements %}
+                        <tr>
+                            <td class="p-4 text-slate-400 font-mono">{{ m.timestamp.strftime('%H:%M') }}</td>
+                            <td class="p-4 font-bold text-white">{{ m.inmate.name }}</td>
+                            <td class="p-4 text-cyan-400">{{ m.destination }}</td>
+                            <td class="p-4 text-slate-300">{{ m.purpose }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ALERTS TAB -->
+        <section id="alerts-view" class="tab-content hidden animate-fade-in">
+            <!-- (Same as other dashboards) -->
+        </section>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`${tabId}-view`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-cyan-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-slate-400', 'hover:bg-slate-800');
+            });
+            event.currentTarget.classList.remove('text-slate-400', 'hover:bg-slate-800');
+            event.currentTarget.classList.add('bg-cyan-600', 'text-white', 'shadow-lg');
+        }
+
+        function markAttendance(btn, inmateId, status) {
+            // 1. Visual Feedback: Fade the button to show it was pressed
+            btn.classList.add('opacity-50', 'cursor-not-allowed', 'ring-2', 'ring-offset-2', 'ring-offset-slate-900');
+            
+            // 2. Send Data without reloading the page
+            const formData = new FormData();
+            formData.append('inmate_id', inmateId);
+            formData.append('status', status);
+
+            fetch('/api/mark-attendance', {
+                method: 'POST',
+                body: formData
+            }).catch(err => console.error('Error marking attendance:', err));
+        }
+    </script>
+</body>
+</html>

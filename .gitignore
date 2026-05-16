@@ -1,0 +1,29 @@
+# Database
+*.db
+prison_system.db
+
+# AI Models & Weights (Too large for GitHub)
+*.pt
+*.h5
+brawl_lstm_model.h5
+custom_weapons.pt
+
+# Training Data & AI Logs
+*.npy
+dataset/
+runs/
+Sharp object detection*/
+Weapon-Detection*/
+
+# User Uploads & System Media
+static/inmate_photos/*
+!static/inmate_photos/default.jpg
+static/staff_photos/*
+!static/staff_photos/default_staff.jpg
+static/incident_snapshots/*
+
+# Python Cache and Virtual Environments
+__pycache__/
+*.pyc
+venv/
+.venv/

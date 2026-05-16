@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superintendent Dashboard | VJC Smart Prison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex">
+
+    <aside class="w-64 bg-slate-900 h-screen fixed border-r border-slate-800 flex flex-col z-20">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="bg-purple-600 p-2 rounded-lg"><i data-lucide="crown" class="text-white"></i></div>
+            <div>
+                <h1 class="font-bold text-sm tracking-tight text-white">HEADQUARTERS</h1>
+                <p class="text-[10px] text-slate-500 font-mono">ROLE: SUPERINTENDENT</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="switchTab('overview')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-purple-600 text-white shadow-lg">
+                <i data-lucide="layout-dashboard" size="18"></i> <span class="font-medium text-sm">Overview</span>
+            </button>
+            <button onclick="switchTab('registry')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="users" size="18"></i> <span class="font-medium text-sm">Inmate Registry</span>
+            </button>
+            <button onclick="switchTab('release')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="calendar-clock" size="18"></i> <span class="font-medium text-sm">Release Diary</span>
+            </button>
+            <a href="{{ url_for('superintendent_attendance') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="clipboard-list" size="18"></i> <span class="font-medium text-sm">Attendance Register</span>
+            </a>
+            <a href="{{ url_for('superintendent_history') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="archive" size="18"></i> <span class="font-medium text-sm">Historical Records</span>
+            </a>
+            <button onclick="switchTab('alerts')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="siren" size="18"></i> <span class="font-medium text-sm">Security Alerts</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <a href="/logout" class="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg">
+                <i data-lucide="log-out" size="18"></i> <span class="text-sm font-bold">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="ml-64 flex-1 p-8 relative">
+        
+        <div class="flex justify-between items-center mb-8 bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl">
+            <div>
+                <h2 class="text-xl font-bold text-white">Facility Command Center</h2>
+                <p class="text-slate-500 text-sm">Currently Viewing: <span class="text-purple-400 font-mono font-bold">{{ current_jail }}</span></p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <form action="/superintendent_dashboard" method="GET" class="flex items-center gap-2">
+                    <div class="relative">
+                        <select name="jail_id" onchange="this.form.submit()" class="bg-slate-950 border border-slate-700 text-white text-sm rounded-lg px-4 py-2 outline-none focus:border-purple-500 appearance-none pr-10">
+                            <option value="all">View All Facilities</option>
+                            {% for jail in jails %}
+                            <option value="{{ jail.id }}" {% if current_jail == jail.name %}selected{% endif %}>{{ jail.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <i data-lucide="map-pin" class="absolute right-3 top-2.5 text-slate-500 w-4 h-4 pointer-events-none"></i>
+                    </div>
+                </form>
+
+                <button onclick="document.getElementById('staffModal').classList.remove('hidden')" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-700 transition-colors text-sm font-bold">
+                    <i data-lucide="user-plus" size="16"></i> Add Staff
+                </button>
+                <button onclick="document.getElementById('jailModal').classList.remove('hidden')" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors text-sm font-bold shadow-lg shadow-purple-500/20">
+                    <i data-lucide="plus-circle" size="16"></i> Add Facility
+                </button>
+            </div>
+        </div>
+
+        <section id="overview-view" class="tab-content animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-purple-500/10 rounded-lg text-purple-400"><i data-lucide="users"></i></div>
+                    </div>
+                    <p class="text-slate-500 text-xs font-bold uppercase">Total Inmates</p>
+                    <h3 class="text-3xl font-bold text-white">{{ total_count }}</h3>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-blue-500/10 rounded-lg text-blue-400"><i data-lucide="file-clock"></i></div>
+                    </div>
+                    <p class="text-slate-500 text-xs font-bold uppercase">Pending Approval</p>
+                    <h3 class="text-3xl font-bold text-white">{{ pending|length }}</h3>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-red-500/10 rounded-lg text-red-400"><i data-lucide="alert-triangle"></i></div>
+                    </div>
+                    <p class="text-slate-500 text-xs font-bold uppercase">Critical Alerts</p>
+                    <h3 class="text-3xl font-bold text-white">{{ alerts|length }}</h3>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400"><i data-lucide="badge-check"></i></div>
+                    </div>
+                    <p class="text-slate-500 text-xs font-bold uppercase">Staff on Duty</p>
+                    <h3 class="text-3xl font-bold text-white">{{ staff|length }}</h3>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-white mb-4">Pending Admissions</h3>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg mb-8">
+                {% if pending|length > 0 %}
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-5">Inmate Details</th>
+                            <th class="p-5">Crime Info</th>
+                            <th class="p-5">Risk Level</th>
+                            <th class="p-5 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for inmate in pending %}
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="p-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-slate-800 overflow-hidden">
+                                        <img src="{{ url_for('static', filename='inmate_photos/' + inmate.photo) }}" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-white">{{ inmate.name }}</p>
+                                        <p class="text-xs text-slate-500">{{ inmate.nominal_roll }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-5 text-sm text-slate-300">
+                                <p>{{ inmate.section_of_law }}</p>
+                                <p class="text-xs text-slate-500">{{ inmate.court_case }}</p>
+                            </td>
+                            <td class="p-5">
+                                <span class="px-2 py-1 rounded text-xs font-bold border 
+                                {% if inmate.risk_level == 'High' %} text-red-500 bg-red-500/10 border-red-500/20 
+                                {% else %} text-blue-400 bg-blue-500/10 border-blue-500/20 {% endif %}">
+                                    {{ inmate.risk_level }}
+                                </span>
+                            </td>
+                            <td class="p-5 text-right">
+                                <a href="/inmate_profile/{{ inmate.id }}" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold inline-flex items-center gap-1">Review & Approve</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-8 text-center text-slate-500 italic">No pending admissions found.</div>
+                {% endif %}
+            </div>
+
+            <h3 class="text-lg font-bold text-white mb-4">Staff Directory</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {% for s in staff %}
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-slate-800 overflow-hidden">
+                        <img src="{{ url_for('static', filename='staff_photos/' + s.photo) }}" onerror="this.src='https://ui-avatars.com/api/?name={{ s.fullname }}&background=random'" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-white font-bold text-sm">{{ s.fullname }}</p>
+                        <p class="text-xs text-purple-400">{{ s.role }}</p>
+                        <p class="text-[10px] text-slate-500">{{ s.jail.name if s.jail else 'Unassigned' }}</p>
+                    </div>
+                    <form action="/remove_staff/{{ s.id }}" method="POST" onsubmit="return confirm('Remove this staff member?');">
+                        <button class="text-slate-600 hover:text-red-500"><i data-lucide="trash-2" size="16"></i></button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="registry-view" class="tab-content hidden animate-fade-in">
+            <h2 class="text-2xl font-bold text-white mb-6">Complete Inmate Registry</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {% for inmate in active_inmates %}
+                <a href="/inmate_profile/{{ inmate.id }}?source=registry" class="block group">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all">
+                        <div class="h-32 bg-slate-800 relative">
+                            <img src="{{ url_for('static', filename='inmate_photos/' + inmate.photo) }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div class="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-slate-900 to-transparent">
+                                <p class="text-white font-bold truncate px-2">{{ inmate.name }}</p>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <p class="text-xs text-slate-400 font-mono">{{ inmate.nominal_roll }}</p>
+                            <p class="text-xs text-slate-500 truncate"><i data-lucide="map-pin" size="12" class="inline mr-1"></i> {{ inmate.jail.name }}</p>
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300">{{ inmate.risk_level }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="release-view" class="tab-content hidden animate-fade-in">
+            <h2 class="text-2xl font-bold text-white mb-6">Release Diary</h2>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-5">Prisoner</th>
+                            <th class="p-5">Jail</th>
+                            <th class="p-5">Release Date</th>
+                            <th class="p-5 text-right">Days Left</th>
+                            <th class="p-5 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for entry in diary %}
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="p-5 font-bold text-white">{{ entry.name }}</td>
+                            <td class="p-5 text-sm text-slate-400">{{ entry.jail }}</td>
+                            <td class="p-5 text-sm text-slate-300">{{ entry.release_date }}</td>
+                            <td class="p-5 text-right font-mono font-bold {% if entry.days_left < 5 %}text-red-500{% else %}text-green-500{% endif %}">
+                                {{ entry.days_left }} Days
+                            </td>
+                            <td class="p-5 text-right">
+                                <form action="/api/release-inmate/{{ entry.id }}" method="POST" onsubmit="return confirm('Confirm Release? This cannot be undone.');">
+                                    <button class="bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white px-3 py-1 rounded text-xs transition-colors">Process Release</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="alerts-view" class="tab-content hidden animate-fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Security Incident Log</h2>
+                <form action="{{ url_for('clear_alerts') }}" method="POST" onsubmit="return confirm('Are you sure you want to clear all alerts? This cannot be undone.');">
+                    <button type="submit" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i> Clear All Alerts
+                    </button>
+                </form>
+            </div>
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-4">Time</th>
+                            <th class="p-4">Facility</th> <th class="p-4">Type</th>
+                            <th class="p-4">Location</th>
+                            <th class="p-4 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800 text-sm">
+                        {% for alert in alerts %}
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="p-4 text-slate-400 font-mono">{{ alert.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                            
+                            <td class="p-4 text-blue-400 font-bold">
+                                {{ alert.facility }}
+                            </td>
+
+                            <td class="p-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold 
+                                {% if 'Weapon' in alert.type %} bg-red-500/10 text-red-400 border border-red-500/20
+                                {% elif 'Emergency' in alert.type %} bg-red-500/10 text-red-400 border border-red-500/20
+                                {% else %} bg-orange-500/10 text-orange-400 border border-orange-500/20 {% endif %}">
+                                    {{ alert.type }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-slate-300">{{ alert.location }}</td>
+                            <td class="p-4 text-right">
+                                <span class="text-xs font-bold text-green-400">Active</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="jailModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">Add New Facility</h3>
+                <button onclick="document.getElementById('jailModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+            <form action="/api/add-jail" method="POST" class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Jail Name</label>
+                    <input type="text" name="jail_name" required class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Location</label>
+                    <input type="text" name="location" required class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Capacity</label>
+                    <input type="number" name="capacity" required class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                </div>
+                <button class="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-lg font-bold mt-2">Create Facility</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="staffModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">Add Staff Member</h3>
+                <button onclick="document.getElementById('staffModal').classList.add('hidden')" class="text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+            <form action="/api/add-staff" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Full Name</label>
+                    <input type="text" name="fullname" required class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">Username</label>
+                        <input type="text" name="username" required class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
+                        <input type="password" name="password" required class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Role</label>
+                    <select name="role" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                        <option value="Jailor">Jailor</option>
+                        <option value="Assistant Prison Officer">Assistant Prison Officer</option>
+                        <option value="Medical Officer">Medical Officer</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Assign Facility</label>
+                    <select name="jail_id" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white mt-1">
+                        {% for jail in jails %}
+                        <option value="{{ jail.id }}">{{ jail.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase">Photo (Optional)</label>
+                    <input type="file" name="photo" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 mt-2"/>
+                </div>
+                <button class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold mt-2">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const activeTab = "{{ active_tab }}";
+            if (activeTab && activeTab !== 'overview') {
+                const btn = document.querySelector(`button[onclick="switchTab('${activeTab}')"]`);
+                if (btn) btn.click();
+            }
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`${tabId}-view`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-purple-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-slate-400', 'hover:bg-slate-800');
+            });
+            event.currentTarget.classList.remove('text-slate-400', 'hover:bg-slate-800');
+            event.currentTarget.classList.add('bg-purple-600', 'text-white', 'shadow-lg');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Records | Superintendent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex">
+
+    <aside class="w-64 bg-slate-900 h-screen fixed border-r border-slate-800 flex flex-col z-20">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="bg-purple-600 p-2 rounded-lg"><i data-lucide="crown" class="text-white"></i></div>
+            <div>
+                <h1 class="font-bold text-sm tracking-tight text-white">HEADQUARTERS</h1>
+                <p class="text-[10px] text-slate-500 font-mono">ROLE: SUPERINTENDENT</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="{{ url_for('superintendent_dashboard') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="layout-dashboard" size="18"></i> <span class="font-medium text-sm">Overview</span>
+            </a>
+            <a href="{{ url_for('superintendent_dashboard') }}?tab=registry" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="users" size="18"></i> <span class="font-medium text-sm">Inmate Registry</span>
+            </a>
+            <a href="{{ url_for('superintendent_dashboard') }}?tab=release" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="calendar-clock" size="18"></i> <span class="font-medium text-sm">Release Diary</span>
+            </a>
+            <a href="{{ url_for('superintendent_attendance') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="clipboard-list" size="18"></i> <span class="font-medium text-sm">Attendance Register</span>
+            </a>
+            <a href="{{ url_for('superintendent_history') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-purple-600 text-white shadow-lg">
+                <i data-lucide="archive" size="18"></i> <span class="font-medium text-sm">Historical Records</span>
+            </a>
+            <a href="{{ url_for('superintendent_dashboard') }}?tab=alerts" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="siren" size="18"></i> <span class="font-medium text-sm">Security Alerts</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <a href="/logout" class="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg">
+                <i data-lucide="log-out" size="18"></i> <span class="text-sm font-bold">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="ml-64 flex-1 p-8">
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-purple-600 rounded-xl"><i data-lucide="archive" class="text-white"></i></div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Inmate History Directory</h2>
+                    <p class="text-slate-500 text-sm">Reviewing all records across all facilities.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 shadow-xl flex justify-between items-center">
+            <form method="GET" action="{{ url_for('superintendent_history') }}" class="flex items-center gap-4">
+                <div>
+                    <label for="jail_id" class="text-xs font-bold text-slate-500 uppercase">Filter by Facility</label>
+                    <select name="jail_id" id="jail_id" onchange="this.form.submit()" class="mt-1 bg-slate-950 border border-slate-700 text-white text-sm rounded-lg px-4 py-2 outline-none focus:border-purple-500 appearance-none pr-10">
+                        <option value="all">View All Facilities</option>
+                        {% for jail in jails %}
+                        <option value="{{ jail.id }}" {% if current_jail == jail.name %}selected{% endif %}>{{ jail.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4"></i>
+                <input type="text" id="searchBar" placeholder="Search by name or roll..." class="bg-slate-900 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white focus:border-purple-500 outline-none transition-colors w-64">
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+            <table class="w-full text-left">
+                <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                    <tr>
+                        <th class="p-5">Inmate Details</th>
+                        <th class="p-5">Facility</th>
+                        <th class="p-5">Admission Date</th>
+                        <th class="p-5">Release Date</th>
+                        <th class="p-5">Status</th>
+                        <th class="p-5 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800" id="inmateTableBody">
+                    {% for inmate in inmates %}
+                    <tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="p-5">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-lg bg-slate-800 overflow-hidden shrink-0">
+                                    <img src="{{ url_for('static', filename='inmate_photos/' + inmate.photo) }}" onerror="this.src='https://ui-avatars.com/api/?name={{ inmate.name|urlencode }}&background=random'" class="w-full h-full object-cover">
+                                </div>
+                                <div>
+                                    <p class="font-bold text-white">{{ inmate.name }}</p>
+                                    <p class="text-xs text-purple-400 font-mono">{{ inmate.nominal_roll }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-5 text-slate-400 text-sm">{{ inmate.jail.name if inmate.jail else 'N/A' }}</td>
+                        <td class="p-5 text-slate-400 font-mono text-sm">{{ inmate.admission_date.strftime('%Y-%m-%d') if inmate.admission_date else 'N/A' }}</td>
+                        <td class="p-5 text-slate-400 font-mono text-sm">
+                            {% if inmate.release_date %}
+                                {{ inmate.release_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                <span class="italic text-slate-600">Ongoing</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-5">
+                            {% if inmate.status == 'Released' %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700">Released</span>
+                            {% elif inmate.status == 'Active' %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
+                            {% else %}
+                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">{{ inmate.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-5 text-right">
+                            <a href="{{ url_for('inmate_profile', id=inmate.id, source='history') }}" class="bg-slate-800 hover:bg-purple-600 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">
+                                View Dossier
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="p-12 text-center">
+                            <div class="text-slate-500 italic">No historical records found.</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // Client-side search filtering
+        document.getElementById('searchBar').addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#inmateTableBody tr');
+            
+            rows.forEach(row => {
+                if (row.cells.length < 2) return; // Skip empty rows
+                
+                let inmateDetailsCell = row.cells[0].innerText.toLowerCase();
+                
+                if (inmateDetailsCell.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

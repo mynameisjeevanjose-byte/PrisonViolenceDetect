@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jailor Dashboard | VJC Smart Prison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex">
+
+    <aside class="w-64 bg-slate-900 h-screen fixed border-r border-slate-800 flex flex-col z-20">
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-alert" class="text-white"></i></div>
+            <div>
+                <h1 class="font-bold text-sm tracking-tight text-white">COMMAND POST</h1>
+                <p class="text-[10px] text-slate-500 font-mono">ROLE: JAILOR</p>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="switchTab('overview')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-blue-600 text-white shadow-lg">
+                <i data-lucide="layout-grid" size="18"></i> <span class="font-medium text-sm">Overview</span>
+            </button>
+            <button onclick="switchTab('admit')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="user-plus" size="18"></i> <span class="font-medium text-sm">Admit Inmate</span>
+            </button>
+            <button onclick="switchTab('work')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="hammer" size="18"></i> <span class="font-medium text-sm">Work Allocation</span>
+            </button>
+            <button onclick="switchTab('diet')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="utensils" size="18"></i> <span class="font-medium text-sm">Dietary Scale</span>
+            </button>
+            <button onclick="switchTab('map')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="map" size="18"></i> <span class="font-medium text-sm">Cell Map</span>
+            </button>
+            <a href="{{ url_for('jailor_attendance') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="clipboard-check" size="18"></i> <span class="font-medium text-sm">Attendance Log</span>
+            </a>
+            <a href="{{ url_for('jailor_history') }}" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="archive" size="18"></i> <span class="font-medium text-sm">Historical Records</span>
+            </a>
+            <button onclick="switchTab('alerts')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-400 hover:bg-slate-800">
+                <i data-lucide="siren" size="18"></i> <span class="font-medium text-sm">Security Alerts</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <a href="/logout" class="flex items-center gap-3 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg">
+                <i data-lucide="log-out" size="18"></i> <span class="text-sm font-bold">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="ml-64 flex-1 p-8 relative">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="mb-6 p-4 rounded-xl border flex items-center gap-3 {% if category=='success' %} bg-emerald-500/10 border-emerald-500/20 text-emerald-400 {% else %} bg-red-500/10 border-red-500/20 text-red-400 {% endif %}">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i> <span class="font-bold text-sm">{{ message }}</span>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="flex justify-between items-center mb-8 bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl">
+            <div>
+                <h2 class="text-xl font-bold text-white">Facility Operations</h2>
+                <p class="text-slate-500 text-sm">Managing: <span class="text-blue-400 font-mono font-bold">District Jail</span></p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex -space-x-2">
+                    {% for i in range(3) %}
+                    <div class="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-900"></div>
+                    {% endfor %}
+                </div>
+                <div class="text-right">
+                    <p class="text-xs font-bold text-slate-400">Total Inmates</p>
+                    <p class="text-xl font-bold text-white">{{ inmates|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <section id="overview-view" class="tab-content animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <p class="text-slate-500 text-xs font-bold uppercase">High Risk</p>
+                    <h3 class="text-3xl font-bold text-white">{{ inmates|selectattr('risk_level', 'equalto', 'High')|list|length }}</h3>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <p class="text-slate-500 text-xs font-bold uppercase">New Admissions (Today)</p>
+                    <h3 class="text-3xl font-bold text-white">0</h3> 
+                </div>
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <p class="text-slate-500 text-xs font-bold uppercase">Active Incidents</p>
+                    <h3 class="text-3xl font-bold text-red-500">{{ incidents|length }}</h3>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-white mb-4">Prisoner Directory</h3>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-5">Details</th>
+                            <th class="p-5">Cell Block</th>
+                            <th class="p-5">Risk</th>
+                            <th class="p-5 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for inmate in inmates %}
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="p-5">
+                                <a href="/inmate_profile/{{ inmate.id }}" class="hover:underline hover:text-blue-400">
+                                    <p class="font-bold text-white">{{ inmate.name }}</p>
+                                </a>
+                                <p class="text-xs text-blue-400 font-mono">{{ inmate.nominal_roll }}</p>
+                            </td>
+                            <td class="p-5 text-slate-400 text-sm">
+                                {{ inmate.cell_assignment }} 
+                                <span class="text-xs text-slate-600 bg-slate-900 px-1.5 py-0.5 rounded ml-2">RM {{ inmate.room_number }}</span>
+                            </td>
+                            <td class="p-5">
+                                <span class="px-2 py-1 rounded text-xs font-bold border 
+                                {% if inmate.risk_level == 'High' %} text-red-500 bg-red-500/10 border-red-500/20 
+                                {% elif inmate.risk_level == 'Medium' %} text-orange-400 bg-orange-500/10 border-orange-500/20 
+                                {% else %} text-blue-400 bg-blue-500/10 border-blue-500/20 {% endif %}">
+                                    {{ inmate.risk_level }}
+                                </span>
+                            </td>
+                            <td class="p-5 text-right">
+                                <button onclick="openTransferModal('{{ inmate.id }}', '{{ inmate.name }}', '{{ inmate.cell_assignment }}', '{{ inmate.room_number }}')" 
+                                        class="bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-2 ml-auto">
+                                    <i data-lucide="arrow-right-left" class="w-3 h-3"></i> Transfer
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="admit-view" class="tab-content hidden animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 bg-blue-600 rounded-xl"><i data-lucide="file-plus" class="text-white"></i></div>
+                <h2 class="text-2xl font-bold text-white">New Inmate Admission</h2>
+            </div>
+            
+            <form action="/api/admit-inmate" method="POST" enctype="multipart/form-data" class="bg-slate-900 border border-slate-800 p-8 rounded-2xl max-w-2xl shadow-xl">
+                
+                <div class="mb-6 flex items-center gap-6">
+                    <div class="w-24 h-24 rounded-xl bg-slate-800 border-2 border-dashed border-slate-600 flex items-center justify-center">
+                        <i data-lucide="camera" class="text-slate-500"></i>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-bold text-slate-400 mb-2">Prisoner Photograph</label>
+                        <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"/>
+                    </div>
+                </div>
+
+            <h3 class="text-sm font-bold text-white mb-3 border-b border-slate-800 pb-2 mt-4">Personal Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Full Name</label>
+                        <input type="text" name="name" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Date of Birth</label>
+                        <input type="date" name="dob" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                    </div>
+                </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Gender</label>
+                    <select name="gender" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Alias</label>
+                    <input type="text" name="alias" placeholder="e.g. Rocky" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Religion</label>
+                    <input type="text" name="religion" placeholder="Optional" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Marital Status</label>
+                    <select name="marital_status" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                    </select>
+                </div>
+            </div>
+
+            <h3 class="text-sm font-bold text-white mb-3 border-b border-slate-800 pb-2 mt-4">Legal & Case Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Prisoner Type</label>
+                    <select name="prisoner_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                        <option value="Remand">Remand / UTP</option>
+                        <option value="Convict">Convict</option>
+                        <option value="Detainee">Detainee</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Court Case No.</label>
+                    <input type="text" name="court_case" placeholder="e.g. CC-452/2024" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Section of Law</label>
+                    <input type="text" name="section_of_law" placeholder="e.g. 379 IPC" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">FIR Number</label>
+                    <input type="text" name="fir_number" placeholder="e.g. FIR-123/2026" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Police Station</label>
+                    <input type="text" name="police_station" placeholder="e.g. Central PS" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Remand Period (Days)</label>
+                    <input type="number" name="remand_period" placeholder="14" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+            </div>
+
+            <h3 class="text-sm font-bold text-white mb-3 border-b border-slate-800 pb-2 mt-4">Emergency Contact</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Contact Name</label>
+                    <input type="text" name="emergency_contact_name" placeholder="Full Name" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Phone Number</label>
+                    <input type="text" name="emergency_contact_phone" placeholder="10-digit number" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Relation</label>
+                    <input type="text" name="emergency_contact_relation" placeholder="e.g. Father, Spouse" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                </div>
+            </div>
+
+            <h3 class="text-sm font-bold text-white mb-3 border-b border-slate-800 pb-2 mt-4">Placement & Physical Details</h3>
+            <div class="grid grid-cols-3 gap-6 mb-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Risk Level</label>
+                        <select name="risk" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                            <option value="Low">Low Risk (Green)</option>
+                            <option value="Medium">Medium Risk (Amber)</option>
+                            <option value="High">High Risk (Red)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Assign Block</label>
+                        <select name="block_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                            <option value="Auto">Auto (Based on Risk)</option>
+                            <option value="Block A">Block A (High Security)</option>
+                            <option value="Block B">Block B (General)</option>
+                            <option value="Block C">Block C (Open Prison)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Assign Room</label>
+                        <select name="room_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none">
+                            <option value="Auto">Auto Allocate</option>
+                            {% for i in range(1, 11) %}
+                            <option value="{{ i }}">Room {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Identification Marks</label>
+                    <textarea name="marks" rows="2" placeholder="e.g. Scar on left cheek" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Home Address</label>
+                    <textarea name="address" rows="2" placeholder="e.g. 123 Main St, Kochi, Kerala" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all">
+                    Generate Nominal Roll & Admit
+                </button>
+            </form>
+        </section>
+
+        <section id="work-view" class="tab-content hidden animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 bg-amber-600 rounded-xl"><i data-lucide="hammer" class="text-white"></i></div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Work Duty Roster</h2>
+                    <p class="text-slate-500 text-sm">Assign daily labor tasks to eligible prisoners.</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-5">Prisoner</th>
+                            <th class="p-5">Current Duty</th>
+                            <th class="p-5 text-right">Assign New Task</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for inmate in inmates %}
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="p-5">
+                                <p class="font-bold text-white">{{ inmate.name }}</p>
+                                <p class="text-xs text-blue-400 font-mono">{{ inmate.nominal_roll }}</p>
+                            </td>
+                            <td class="p-5">
+                                <span class="text-sm font-bold {% if inmate.work_duty == 'Unassigned' %}text-slate-500{% else %}text-amber-400{% endif %}">
+                                    {{ inmate.work_duty }}
+                                </span>
+                            </td>
+                            <td class="p-5 text-right">
+                                <form action="/api/assign-work" method="POST" class="inline-flex items-center gap-2">
+                                    <input type="hidden" name="inmate_id" value="{{ inmate.id }}">
+                                    <select name="work_type" class="bg-slate-950 border border-slate-700 text-white text-xs rounded px-2 py-1.5 outline-none focus:border-amber-500">
+                                        <option value="Unassigned">No Duty</option>
+                                        <option value="Kitchen">Kitchen Helper</option>
+                                        <option value="Garden">Garden Maintenance</option>
+                                        <option value="Cleaning">Cleaning Staff</option>
+                                        <option value="Carpentry">Carpentry Workshop</option>
+                                    </select>
+                                    <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white p-1.5 rounded transition-colors">
+                                        <i data-lucide="check" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="diet-view" class="tab-content hidden animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 bg-green-600 rounded-xl"><i data-lucide="utensils" class="text-white"></i></div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Inmate Dietary Scales</h2>
+                    <p class="text-slate-500 text-sm">Manage food allocation based on medical/religious needs.</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-5">Prisoner</th>
+                            <th class="p-5">Medical Condition</th>
+                            <th class="p-5">Current Diet</th>
+                            <th class="p-5 text-right">Update Scale</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for inmate in inmates %}
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="p-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-800 overflow-hidden">
+                                        <img src="{{ url_for('static', filename='inmate_photos/' + inmate.photo) }}" onerror="this.src='https://ui-avatars.com/api/?name={{ inmate.name }}&background=random'" class="w-full h-full object-cover">
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-white text-sm">{{ inmate.name }}</p>
+                                        <p class="text-xs text-blue-400 font-mono">{{ inmate.nominal_roll }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-5">
+                                {% if inmate.existing_illness and inmate.existing_illness != 'None' %}
+                                    <span class="text-xs font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded">{{ inmate.existing_illness }}</span>
+                                {% else %}
+                                    <span class="text-xs font-bold text-slate-500">Healthy</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-5">
+                                <span class="font-mono text-sm font-bold 
+                                    {% if inmate.diet == 'Standard' %} text-slate-400 
+                                    {% elif inmate.diet == 'Medical/Sick' %} text-red-400 
+                                    {% else %} text-emerald-400 {% endif %}">
+                                    {{ inmate.diet }}
+                                </span>
+                            </td>
+                            <td class="p-5 text-right">
+                                <form action="/api/update-diet" method="POST" class="inline-flex items-center gap-2">
+                                    <input type="hidden" name="inmate_id" value="{{ inmate.id }}">
+                                    <select name="diet_type" class="bg-slate-950 border border-slate-700 text-white text-xs rounded px-2 py-1.5 outline-none focus:border-green-500">
+                                        <option value="Standard" {% if inmate.diet == 'Standard' %}selected{% endif %}>Standard</option>
+                                        <option value="Vegetarian" {% if inmate.diet == 'Vegetarian' %}selected{% endif %}>Vegetarian</option>
+                                        <option value="Diabetic" {% if inmate.diet == 'Diabetic' %}selected{% endif %}>Diabetic (Sugar-Free)</option>
+                                        <option value="High Protein" {% if inmate.diet == 'High Protein' %}selected{% endif %}>High Protein</option>
+                                        <option value="Medical/Sick" {% if inmate.diet == 'Medical/Sick' %}selected{% endif %}>Medical / Liquid</option>
+                                    </select>
+                                    <button type="submit" class="bg-green-600 hover:bg-green-500 text-white p-1.5 rounded transition-colors">
+                                        <i data-lucide="check" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="map-view" class="tab-content hidden animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 bg-purple-600 rounded-xl"><i data-lucide="map" class="text-white"></i></div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Live Cell Block Map</h2>
+                    <p class="text-slate-500 text-sm">Visual occupancy tracker. Click a room to view details.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                
+                <div class="bg-slate-900 border border-red-900/30 rounded-2xl p-4">
+                    <h3 class="text-red-400 font-bold mb-4 flex items-center gap-2"><i data-lucide="lock"></i> Block A (High Risk)</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for room_num, occupants in blocks['Block A'].items() %}
+                        <div onclick="openRoomModal(this)"
+                             data-block="Block A"
+                             data-room="{{ room_num }}"
+                             data-occupants="{{ occupants|tojson|forceescape }}"
+                             class="cursor-pointer p-3 rounded-lg border transition-all hover:scale-105
+                             {% if occupants|length > 0 %} bg-red-900/20 border-red-500/50 {% else %} bg-slate-950 border-slate-800 {% endif %}">
+                            
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-mono text-slate-500">RM-{{ room_num }}</span>
+                                {% if occupants|length > 0 %}<div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>{% endif %}
+                            </div>
+                            <div class="flex justify-center">
+                                <i data-lucide="user" class="w-6 h-6 {% if occupants|length > 0 %}text-red-400 fill-current{% else %}text-slate-800{% endif %}"></i>
+                            </div>
+                            <p class="text-center text-[10px] mt-1 text-slate-400">{{ occupants|length }}/1</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-orange-900/30 rounded-2xl p-4">
+                    <h3 class="text-orange-400 font-bold mb-4 flex items-center gap-2"><i data-lucide="users"></i> Block B (Medium)</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for room_num, occupants in blocks['Block B'].items() %}
+                        <div onclick="openRoomModal(this)"
+                             data-block="Block B"
+                             data-room="{{ room_num }}"
+                             data-occupants="{{ occupants|tojson|forceescape }}"
+                             class="cursor-pointer p-3 rounded-lg border transition-all hover:scale-105
+                             {% if occupants|length > 0 %} bg-orange-900/20 border-orange-500/50 {% else %} bg-slate-950 border-slate-800 {% endif %}">
+                            
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-mono text-slate-500">RM-{{ room_num }}</span>
+                            </div>
+                            <div class="flex justify-center gap-1">
+                                {% for i in range(3) %}
+                                <div class="w-3 h-6 rounded-sm {% if loop.index <= occupants|length %}bg-orange-400{% else %}bg-slate-800{% endif %}"></div>
+                                {% endfor %}
+                            </div>
+                            <p class="text-center text-[10px] mt-1 text-slate-400">{{ occupants|length }}/3</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-blue-900/30 rounded-2xl p-4">
+                    <h3 class="text-blue-400 font-bold mb-4 flex items-center gap-2"><i data-lucide="users"></i> Block C (Low)</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for room_num, occupants in blocks['Block C'].items() %}
+                        <div onclick="openRoomModal(this)"
+                             data-block="Block C"
+                             data-room="{{ room_num }}"
+                             data-occupants="{{ occupants|tojson|forceescape }}"
+                             class="cursor-pointer p-3 rounded-lg border transition-all hover:scale-105
+                             {% if occupants|length > 0 %} bg-blue-900/20 border-blue-500/50 {% else %} bg-slate-950 border-slate-800 {% endif %}">
+                            
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-mono text-slate-500">RM-{{ room_num }}</span>
+                            </div>
+                            <div class="flex justify-center gap-1">
+                                {% for i in range(3) %}
+                                <div class="w-3 h-6 rounded-sm {% if loop.index <= occupants|length %}bg-blue-400{% else %}bg-slate-800{% endif %}"></div>
+                                {% endfor %}
+                            </div>
+                            <p class="text-center text-[10px] mt-1 text-slate-400">{{ occupants|length }}/3</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="alerts-view" class="tab-content hidden animate-fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-3 bg-red-600 rounded-xl"><i data-lucide="siren" class="text-white"></i></div>
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Security Incident Log</h2>
+                    <p class="text-slate-500 text-sm">History of all security events and alarms.</p>
+                </div>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-950 text-xs uppercase text-slate-400 font-bold">
+                        <tr>
+                            <th class="p-5">Time</th>
+                            <th class="p-5">Type</th>
+                            <th class="p-5">Location</th>
+                            <th class="p-5 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for alert in incidents %}
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="p-5 text-slate-400 font-mono">{{ alert.timestamp.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                            <td class="p-5">
+                                <span class="px-2 py-1 rounded text-xs font-bold {% if 'Weapon' in alert.type %} bg-red-500/10 text-red-400 border border-red-500/20 {% elif 'Emergency' in alert.type %} bg-red-500/10 text-red-400 border border-red-500/20 {% else %} bg-orange-500/10 text-orange-400 border border-orange-500/20 {% endif %}">
+                                    {{ alert.type }}
+                                </span>
+                            </td>
+                            <td class="p-5 text-slate-300">{{ alert.location }}</td>
+                            <td class="p-5 text-right"><span class="text-xs font-bold text-green-400">Logged</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="roomModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl transform transition-all scale-100">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <div>
+                    <h3 id="modalTitle" class="text-xl font-bold text-white">Room Details</h3>
+                    <p id="modalSubtitle" class="text-slate-400 text-sm">Occupancy List</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-slate-800 rounded-full"><i data-lucide="x" class="text-white"></i></button>
+            </div>
+            
+            <div id="modalContent" class="space-y-4">
+                </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-800 text-center">
+                <button onclick="closeModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-bold text-sm">Close View</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="transferModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                <h3 class="text-xl font-bold text-white">Transfer Prisoner</h3>
+                <button onclick="closeTransferModal()" class="p-2 hover:bg-slate-800 rounded-full"><i data-lucide="x" class="text-white"></i></button>
+            </div>
+            
+            <form action="/api/move-inmate" method="POST">
+                <input type="hidden" name="inmate_id" id="transferInmateId">
+                
+                <div class="mb-6 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                    <p class="text-slate-500 text-xs font-bold uppercase mb-1">Prisoner</p>
+                    <p id="transferInmateName" class="text-lg font-bold text-white">Name Here</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">New Block</label>
+                        <select name="new_block" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white outline-none focus:border-blue-500">
+                            <option value="Block A">Block A</option>
+                            <option value="Block B">Block B</option>
+                            <option value="Block C">Block C</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">New Room</label>
+                        <select name="new_room" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white outline-none focus:border-blue-500">
+                            {% for i in range(1, 11) %}
+                            <option value="{{ i }}">Room {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20">Confirm Transfer</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const activeTab = "{{ active_tab }}";
+            if (activeTab && activeTab !== 'overview') {
+                const btn = document.querySelector(`button[onclick="switchTab('${activeTab}')"]`);
+                if (btn) btn.click();
+            }
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`${tabId}-view`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+                btn.classList.add('text-slate-400', 'hover:bg-slate-800');
+            });
+            event.currentTarget.classList.remove('text-slate-400', 'hover:bg-slate-800');
+            event.currentTarget.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+        }
+
+        // Room Modal Logic (VS Code Safe)
+        function openRoomModal(element) {
+            const block = element.getAttribute('data-block');
+            const room = element.getAttribute('data-room');
+            const occupantsData = element.getAttribute('data-occupants');
+            
+            let occupants = [];
+            try {
+                occupants = JSON.parse(occupantsData);
+            } catch (e) {
+                console.error("Error parsing occupants JSON", e);
+            }
+
+            document.getElementById('modalTitle').innerText = `${block} - Room ${room}`;
+            const contentDiv = document.getElementById('modalContent');
+            contentDiv.innerHTML = ''; 
+
+            if (occupants.length === 0) {
+                contentDiv.innerHTML = `<div class="text-center py-8 text-slate-500 italic">This room is currently empty.</div>`;
+            } else {
+                occupants.forEach(inmate => {
+                    const html = `
+                        <div class="flex items-center gap-4 p-3 bg-slate-950 rounded-xl border border-slate-800">
+                            <div class="w-12 h-12 rounded-full bg-slate-800 overflow-hidden">
+                                <img src="/static/inmate_photos/${inmate.photo || 'default.jpg'}" onerror="this.src='https://ui-avatars.com/api/?name=${inmate.name}&background=random'" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="font-bold text-white">${inmate.name}</p>
+                                <p class="text-xs text-blue-400 font-mono">${inmate.nominal_roll}</p>
+                                <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded mt-1 inline-block">${inmate.court_case}</span>
+                            </div>
+                        </div>
+                    `;
+                    contentDiv.innerHTML += html;
+                });
+            }
+            document.getElementById('roomModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('roomModal').classList.add('hidden');
+        }
+
+        // Transfer Modal Logic
+        function openTransferModal(id, name, block, room) {
+            document.getElementById('transferInmateId').value = id;
+            document.getElementById('transferInmateName').innerText = name;
+            document.getElementById('transferModal').classList.remove('hidden');
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transferModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

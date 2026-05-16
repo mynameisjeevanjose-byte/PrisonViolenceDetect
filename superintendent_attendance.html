@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance Logs - Superintendent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Attendance Register</h2>
+            <a href="{{ url_for('superintendent_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+
+        <div class="card p-3 mb-4">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="date" class="form-control" value="{{ search_date }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Facility</label>
+                    <select name="jail_id" class="form-select">
+                        <option value="all">All Facilities</option>
+                        {% for jail in jails %}
+                        <option value="{{ jail.id }}" {% if current_jail|string == jail.id|string %}selected{% endif %}>
+                            {{ jail.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Inmate Name</th>
+                            <th>Roll No</th>
+                            <th>Facility</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.date }}</td>
+                            <td>{{ log.inmate.name }}</td>
+                            <td>{{ log.inmate.nominal_roll }}</td>
+                            <td>{{ log.inmate.jail.location }}</td>
+                            <td>
+                                <span class="badge {% if log.status == 'Present' %}bg-success{% else %}bg-warning{% endif %}">
+                                    {{ log.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center">No records found for this date.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
