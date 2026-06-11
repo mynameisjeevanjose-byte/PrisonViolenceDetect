@@ -18,23 +18,24 @@ all security incidents.
 5. Facilitate Timely Response: Propagate AI-generated security alerts to relevant staff dashboards in near-real time, ensuring rapid human intervention when automated threats are detected.
 
 Implementation
-The system is implemented as a full-stack web application using the Flask framework for the
-backend and standard HTML/CSS/JavaScript for the frontend. The core logic is written in Python,
-with SQLAlchemy serving as the Object-Relational Mapper (ORM) for database interactions. The
+
+The system is implemented as a full-stack web application using the Flask framework for the backend and standard HTML/CSS/JavaScript for the frontend. The core logic is written in Python,with SQLAlchemy serving as the Object-Relational Mapper (ORM) for database interactions. The
 integration of computer vision and machine learning models provides autonomous surveillance
-capabilities directly within the application’s backend architecture.
-The system’s functionality is delivered through several key Python functions and classes in the core
-application. Where applicable, specific algorithms are embedded directly within these functions
+capabilities directly within the application’s backend architecture. The system’s functionality is delivered through several key Python functions and classes in the core application. Where applicable, specific algorithms are embedded directly within these functions
 to handle complex data operations and predictive modeling.
+
 Implementation of User Authentication & Routing
+
 • login() and logout(): The login() function validates user credentials against the database,
 establishes a secure session, and redirects the user to the appropriate role-based dashboard
 (e.g., Superintendent, Jailor, Medical Officer). logout() safely clears the active session to
 securely log the user out of the system.
+
 Implementation of Inmate Admission and Management
 • admit inmate() and edit inmate(): These functions handle the intake and modification
 of prisoner records. They automatically generate unique nominal roll IDs, process mugshot
 uploads, and save formal legal, contact, and medical details into the database.
+
 Implementation of Real-Time AI Surveillance Engine
 • CameraSystem.get frame(): This is the central engine for autonomous security monitoring. Running in a continuous background thread, it processes incoming video streams
 frame-by-frame and sequentially applies multiple AI algorithms:
